@@ -1,0 +1,66 @@
+#include <ESP8266WiFi.h>
+
+#define TRIG_PIN 9
+#define ECHO_PIN 10
+#define BUZZER 8
+
+long duration;
+int distance;
+
+const char* ssid = "YOUR_WIFI_NAME";
+const char* password = "YOUR_WIFI_PASSWORD";
+
+WiFiClient client;
+
+void setup() {
+  pinMode(TRIG_PIN, OUTPUT);
+  pinMode(ECHO_PIN, INPUT);
+  pinMode(BUZZER, OUTPUT);
+
+  Serial.begin(9600);
+
+  WiFi.begin(ssid, password);
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  Serial.println("WiFi Connected");
+}
+
+void loop() {
+
+  digitalWrite(TRIG_PIN, LOW);
+  delayMicroseconds(2);
+
+  digitalWrite(TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(TRIG_PIN, LOW);
+
+  duration = pulseIn(ECHO_PIN, HIGH);
+
+  distance = duration * 0.034 / 2;
+
+  Serial.print("Distance: ");
+  Serial.println(distance);
+
+  if (distance < 100) {  
+    digitalWrite(BUZZER, HIGH);
+    sendAlert();
+  } 
+  else {
+    digitalWrite(BUZZER, LOW);
+  }
+
+  delay(500);
+}
+
+void sendAlert() {
+  if (client.connect("maker.ifttt.com", 80)) {
+    client.println("GET /trigger/obstacle_detected/with/key/YOUR_IFTTT_KEY HTTP/1.1");
+    client.println("Host: maker.ifttt.com");
+    client.println("Connection: close");
+    client.println();
+  }
+}
